@@ -99,14 +99,22 @@ include_directories(include ${STB_SOURCE_DIR} ${GLM_SOURCE_DIR}/glm)
 
 file(GLOB_RECURSE SOURCE_FILES "${PROJECT_SOURCE_DIR}/src/*.cpp" "${PROJECT_SOURCE_DIR}/include/*.h" "${PROJECT_SOURCE_DIR}/include/*.inl" "${PROJECT_SOURCE_DIR}/include/*.hpp")
 
-if (NOT ${SWITCH})
-    FetchContent_Declare(googletest
-        GIT_REPOSITORY https://github.com/google/googletest.git
-        GIT_TAG ${GTEST_COMMIT})
+add_library(${PROJECT_NAME} STATIC ${SOURCE_FILES})
+set_target_properties(${PROJECT_NAME} PROPERTIES LINKER_LANGUAGE CXX)
+target_link_libraries(${PROJECT_NAME} OpenGL::GL GLEW::glew glfw)
 
-    set(GTEST_FORCE_SHARED_CRT ON CACHE BOOL "" FORCE)
-    FetchContent_MakeAvailable(googletest)
-endif()
+# Test executable
+add_executable(${PROJECT_NAME}_test_exe ${SOURCE_FILES})
+set_target_properties(${PROJECT_NAME}_test_exe PROPERTIES LINKER_LANGUAGE CXX)
+target_link_libraries(${PROJECT_NAME}_test_exe OpenGL::GL GLEW::glew glfw)
+
+# Build tests
+FetchContent_Declare(googletest
+    GIT_REPOSITORY https://github.com/google/googletest.git
+    GIT_TAG ${GTEST_COMMIT})
+
+set(GTEST_FORCE_SHARED_CRT ON CACHE BOOL "" FORCE)
+FetchContent_MakeAvailable(googletest)
 
 enable_testing()
 
@@ -120,14 +128,13 @@ target_link_libraries(${PROJECT_NAME}_tests
 include(GoogleTest)
 gtest_discover_tests(${PROJECT_NAME}_tests)
 
-add_executable(${PROJECT_NAME} ${SOURCE_FILES})
+#file(COPY res DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
 
-file(COPY res DESTINATION ${CMAKE_CURRENT_BINARY_DIR})
-
+# Build switch exe
 if(SWITCH)
     add_compile_definitions(OS_SWITCH)
     set_target_properties(${PROJECT_NAME}  PROPERTIES
-            APP_TITLE "OSVEngine"
+            APP_TITLE "VisualWiz"
             APP_AUTHOR "William Wells"
             APP_VERSION "0.0.1"
             ROMFS res)
@@ -145,8 +152,9 @@ if(SWITCH)
     add_nro_target(${PROJECT_NAME})
 endif()
 
+# Link libraries dependant on target platform
 if (NOT ${CMAKE_SYSTEM_NAME} MATCHES "Emscripten" AND NOT SWITCH)
-    target_link_libraries(${PROJECT_NAME} OpenGL::GL GLEW::glew glfw openal sndfile ScenePort)
+    target_link_libraries(${PROJECT_NAME} OpenGL::GL GLEW::glew glfw)
 elseif(${CMAKE_SYSTEM_NAME} MATCHES "Emscripten")
     target_link_libraries(${PROJECT_NAME} ${OPENGL_gl_LIBRARY} sndfile ScenePort)
     set_target_properties(${PROJECT_NAME}
